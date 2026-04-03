@@ -12,4 +12,4 @@ outputs/
 recordings/
 
 # OS
-.DS_Store
+.DS_Store.env
