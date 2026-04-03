@@ -13,3 +13,4 @@ recordings/
 
 # OS
 .DS_Store.env
+.env
