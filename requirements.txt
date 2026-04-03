@@ -1,0 +1,24 @@
+# ─── Core ─────────────────────────────────────────────────────────────────
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+python-multipart>=0.0.9
+streamlit>=1.35.0
+pandas>=2.2.0
+
+# ─── Audio extraction (bundled FFmpeg — no system install needed) ──────────
+av>=10.0.0                    # PyAV: extracts audio from video, splits large files
+
+# ─── Transcription ────────────────────────────────────────────────────────
+# openai-whisper             # Uncomment only if using TRANSCRIPTION_PROVIDER=local
+# torch>=2.1.0               # Required by local whisper
+
+# ─── LLM ──────────────────────────────────────────────────────────────────
+openai>=1.30.0                # Whisper API + GPT-4o chat + streaming
+anthropic>=0.28.0             # Claude API (optional, if using LLM_PROVIDER=anthropic)
+
+# ─── File watching ────────────────────────────────────────────────────────
+watchdog>=4.0.0
+
+# ─── Utilities ────────────────────────────────────────────────────────────
+python-dotenv>=1.0.0
+requests>=2.31.0

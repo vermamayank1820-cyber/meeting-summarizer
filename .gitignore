@@ -1,0 +1,15 @@
+# Environment
+.env
+venv/
+
+# Python
+__pycache__/
+*.pyc
+
+# Logs & outputs
+logs/
+outputs/
+recordings/
+
+# OS
+.DS_Store
