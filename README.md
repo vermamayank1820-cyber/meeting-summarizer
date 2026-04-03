@@ -1,4 +1,4 @@
-# 🎙️ Meeting Summarizer — Agentic AI System
+# 🎙️ Meeting Summarizer — AI Meeting Workspace
 
 > Automatically transcribes meeting recordings and generates consulting-grade summaries with a modern React workspace for uploads, results, and action tracking.
 
@@ -44,7 +44,7 @@ Meeting Summarizer/
 │   ├── transcription_agent.py  # Whisper audio → text
 │   ├── cleaning_agent.py       # Remove fillers, fix grammar
 │   ├── summarization_agent.py  # LLM structured summary
-│   └── storage_agent.py        # Save JSON + Markdown + SQLite
+│   └── storage_agent.py        # Save transcripts + summaries in SQLite
 ├── api/
 │   └── main.py                 # FastAPI server
 ├── frontend/                   # React + Tailwind SaaS UI
@@ -58,7 +58,7 @@ Meeting Summarizer/
 ├── tests/
 │   └── test_example.py         # Example test (no audio needed)
 ├── recordings/                 # Drop recordings here (auto-watched)
-├── outputs/                    # Generated summaries (JSON + MD)
+├── outputs/                    # SQLite database and generated app data
 ├── logs/                       # Daily log files
 ├── orchestrator.py             # Pipeline coordinator
 ├── requirements.txt
@@ -68,13 +68,26 @@ Meeting Summarizer/
 
 ---
 
-## Setup (5 minutes)
+## Product Experience
+
+The frontend is now structured like a focused SaaS workspace instead of a utility dashboard.
+
+- **Dashboard / Home**: AI-first landing experience with a large prompt surface, recent meetings, and action-item visibility
+- **Upload / Ingestion**: Dedicated recording upload flow with clear summary-style selection and one primary CTA
+- **Processing State**: Stable skeleton-based loading layout instead of spinner-only feedback
+- **Results**: Summary, key discussion points, decisions, transcript preview, and action items in a single workspace
+- **Action Items**: Collapsible meeting-based task groups with assignees, due dates, and status pills
+
+---
+
+## Setup
 
 ### 1. Install dependencies
 
 ```bash
 cd "Meeting Summarizer"
 python3 -m pip install -r requirements.txt
+cd frontend && npm install
 ```
 
 > **Note on PyTorch / Whisper:** If you're on macOS Apple Silicon, install:
@@ -109,7 +122,7 @@ Or start services individually:
 python3 -m uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
 
 # Terminal 2 — React UI
-cd frontend && npm install && npm run dev
+cd frontend && npm run dev
 ```
 
 ---
@@ -120,14 +133,15 @@ cd frontend && npm install && npm run dev
 1. Record your meeting in Teams / Google Meet / Zoom
 2. Save/export the recording to `./recordings/`
 3. The WatcherAgent detects it and runs the full pipeline automatically
-4. Open http://localhost:5173 to see the summary workspace
+4. Open [http://localhost:5173](http://localhost:5173) to review the summary workspace
 
 ### Manual Upload
-1. Open http://localhost:5173
+1. Open [http://localhost:5173](http://localhost:5173)
 2. Go to **Ingestion**
 3. Drag & drop your recording
 4. Choose summary style: **Executive** (concise) or **Detailed**
 5. Click **Process Recording**
+6. Wait on the skeleton processing screen, then review the generated result and action items
 
 ### CLI (single file)
 ```bash
@@ -144,7 +158,6 @@ python3 orchestrator.py recordings/my_meeting.mp4 executive
 | POST | `/upload` | Upload recording |
 | GET | `/meetings` | List all meetings |
 | GET | `/meetings/{id}` | Full meeting data |
-| GET | `/meetings/{id}/markdown` | Summary as Markdown |
 | GET | `/status/{id}` | Processing status |
 
 Interactive docs: http://localhost:8000/docs
@@ -161,11 +174,12 @@ This runs the full stack (cleaning → summarization → storage) using a synthe
 
 ---
 
-## Summary Output Format
+## Data Model
 
-Each meeting produces two files in `/outputs/`:
+Meetings are stored in SQLite at `outputs/meetings.sqlite`.
+The backend persists transcripts and structured summaries in the database, and the React frontend reads them through the API.
 
-**JSON** — full machine-readable data:
+Example summary payload:
 ```json
 {
   "meeting_id": "a1b2c3d4",
@@ -187,7 +201,29 @@ Each meeting produces two files in `/outputs/`:
 }
 ```
 
-**Markdown** — human-readable summary for sharing.
+The main frontend screens use these fields:
+
+- `overview` / `summary.meeting_overview` for the executive result card
+- `summary.key_discussion_points` and `summary.decisions_taken` for the results screen
+- `action_items` and `summary.action_items` for the action dashboard
+- `clean_transcript` / `raw_transcript` for transcript preview
+- `status` for processing and completion states
+
+---
+
+## Frontend Stack
+
+- React 18 + Vite
+- Tailwind CSS
+- Component-based UI in `frontend/src/components`
+- FastAPI backend integration via `frontend/src/lib/api.js`
+
+Key frontend entrypoints:
+
+- `frontend/src/App.jsx`
+- `frontend/src/components/UploadDropzone.jsx`
+- `frontend/src/components/ResultsView.jsx`
+- `frontend/src/components/ActionItemsBoard.jsx`
 
 ---
 
@@ -212,6 +248,9 @@ First run downloads the model. Subsequent runs use the cached version.
 **LLM API error?**
 Check your API key in `.env`. Verify your quota at console.anthropic.com.
 
+**Transcription fails after upload?**
+Check the backend logs in `logs/`. Common causes are OpenAI transcription quota exhaustion, missing `ffmpeg`, or local Whisper model download/SSL failures.
+
 **File not detected by WatcherAgent?**
 Ensure the file extension is in the supported list (.mp4, .mp3, .wav, .m4a, .webm, .ogg, .mkv, .mov).
 
@@ -221,3 +260,6 @@ Make sure the FastAPI server is running on port 8000 (`python -m uvicorn api.mai
 **Frontend not starting?**
 Install the UI dependencies first:
 `cd frontend && npm install`
+
+**React dev server starts but the page is blank?**
+Confirm the frontend is running on port 5173 and that the backend is reachable at `http://localhost:8000`. Override the API URL with `VITE_API_BASE_URL` if needed.
