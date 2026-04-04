@@ -1,7 +1,18 @@
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, MessageSquareText, Sparkles, Upload } from "lucide-react";
 import SuggestionChip from "./SuggestionChip";
 
-export default function AiComposer({ onPrimaryAction, onSuggestion }) {
+export default function AiComposer({
+  prompt,
+  onPromptChange,
+  onAsk,
+  onUpload,
+  onSuggestion,
+  answer,
+  answerContextLabel,
+  isAnswering,
+  error,
+  canAsk,
+}) {
   const suggestions = [
     "Summarize the latest leadership sync",
     "Find all overdue action items",
@@ -27,9 +38,12 @@ export default function AiComposer({ onPrimaryAction, onSuggestion }) {
         </p>
 
         <div className="mt-8 rounded-[28px] border border-white/80 bg-white/80 p-4 shadow-soft md:p-5">
-          <div className="min-h-[120px] rounded-[22px] border border-dashed border-slate-200 bg-stone-50/80 p-5 text-left text-lg font-medium text-slate-400">
-            Ask about a meeting, paste a follow-up request, or upload a new recording to generate a fresh brief.
-          </div>
+          <textarea
+            value={prompt}
+            onChange={(event) => onPromptChange(event.target.value)}
+            placeholder="Ask about a meeting, decisions, or follow-ups. If the topic is outside the meeting, the assistant will say so clearly."
+            className="min-h-[140px] w-full resize-none rounded-[22px] border border-dashed border-slate-200 bg-stone-50/80 p-5 text-left text-lg font-medium text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-amber-300 focus:bg-white"
+          />
 
           <div className="mt-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex flex-wrap gap-2">
@@ -42,14 +56,49 @@ export default function AiComposer({ onPrimaryAction, onSuggestion }) {
               ))}
             </div>
 
-            <button
-              onClick={onPrimaryAction}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-stone-950 px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-stone-800"
-            >
-              Summarize meeting
-              <ArrowRight size={16} />
-            </button>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <button
+                onClick={onUpload}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50"
+              >
+                <Upload size={16} />
+                Upload recording
+              </button>
+
+              <button
+                onClick={() => onAsk(prompt)}
+                disabled={!canAsk || !prompt.trim() || isAnswering}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-stone-950 px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <MessageSquareText size={16} />
+                {isAnswering ? "Thinking..." : "Ask meeting"}
+                {!isAnswering ? <ArrowRight size={16} /> : null}
+              </button>
+            </div>
           </div>
+
+          {!canAsk ? (
+            <div className="mt-4 rounded-[22px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              Process at least one meeting first, then the assistant can answer questions grounded in that transcript.
+            </div>
+          ) : null}
+
+          {error ? (
+            <div className="mt-4 rounded-[22px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+              {error}
+            </div>
+          ) : null}
+
+          {answer ? (
+            <div className="mt-4 rounded-[24px] border border-slate-200 bg-white px-5 py-4">
+              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Answer {answerContextLabel ? `from ${answerContextLabel}` : ""}
+              </div>
+              <div className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-700">
+                {answer}
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

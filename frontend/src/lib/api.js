@@ -21,6 +21,15 @@ export const api = {
   listMeetings: () => request("/meetings?limit=100"),
   getMeeting: (meetingId) => request(`/meetings/${meetingId}`),
   getStatus: (meetingId) => request(`/status/${meetingId}`),
+  askMeeting: async (meetingId, question) => {
+    const formData = new FormData();
+    formData.append("question", question);
+
+    return request(`/meetings/${meetingId}/chat`, {
+      method: "POST",
+      body: formData,
+    });
+  },
   uploadMeeting: async (file, summaryStyle) => {
     const formData = new FormData();
     formData.append("file", file);

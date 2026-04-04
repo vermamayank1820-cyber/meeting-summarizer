@@ -43,6 +43,9 @@ export default function App() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeJob, setActiveJob] = useState(initialJob);
   const [composerPrompt, setComposerPrompt] = useState("");
+  const [composerAnswer, setComposerAnswer] = useState("");
+  const [composerError, setComposerError] = useState("");
+  const [isAnsweringComposer, setIsAnsweringComposer] = useState(false);
   const pollingRef = useRef(null);
 
   async function loadHealth() {
@@ -120,6 +123,7 @@ export default function App() {
 
   const completedMeetings = meetings.filter((meeting) => meeting.status === "completed").length;
   const processingMeetings = meetings.filter((meeting) => meeting.status === "processing").length;
+  const latestCompletedMeeting = meetings.find((meeting) => meeting.status === "completed") || null;
 
   async function handleUploadSubmit() {
     if (!uploadFile) {
@@ -182,6 +186,37 @@ export default function App() {
     }, 4000);
   }
 
+  async function handleComposerAsk(question) {
+    const trimmedQuestion = question.trim();
+    if (!trimmedQuestion) return;
+
+    if (!latestCompletedMeeting) {
+      setComposerError("There is no completed meeting yet. Upload and process a meeting first.");
+      setComposerAnswer("");
+      return;
+    }
+
+    setComposerError("");
+    setComposerAnswer("");
+    setIsAnsweringComposer(true);
+
+    try {
+      const responseText = await api.askMeeting(latestCompletedMeeting.id, trimmedQuestion);
+      setComposerAnswer(responseText);
+    } catch (error) {
+      setComposerError(
+        error.message || "I could not answer that question from the meeting right now."
+      );
+    } finally {
+      setIsAnsweringComposer(false);
+    }
+  }
+
+  async function handleSuggestionAsk(label) {
+    setComposerPrompt(label);
+    await handleComposerAsk(label);
+  }
+
   const kpis = [
     {
       label: "Meetings captured",
@@ -214,8 +249,16 @@ export default function App() {
       return (
         <div className="space-y-6">
           <AiComposer
-            onPrimaryAction={() => setView("upload")}
-            onSuggestion={(label) => setComposerPrompt(label)}
+            prompt={composerPrompt}
+            onPromptChange={setComposerPrompt}
+            onAsk={handleComposerAsk}
+            onUpload={() => setView("upload")}
+            onSuggestion={handleSuggestionAsk}
+            answer={composerAnswer}
+            answerContextLabel={latestCompletedMeeting?.filename}
+            isAnswering={isAnsweringComposer}
+            error={composerError}
+            canAsk={Boolean(latestCompletedMeeting)}
           />
           <EmptyState
             title="No meetings yet"
@@ -230,11 +273,16 @@ export default function App() {
     return (
       <div className="space-y-6">
         <AiComposer
-          onPrimaryAction={() => setView("upload")}
-          onSuggestion={(label) => {
-            setComposerPrompt(label);
-            setView("action-items");
-          }}
+          prompt={composerPrompt}
+          onPromptChange={setComposerPrompt}
+          onAsk={handleComposerAsk}
+          onUpload={() => setView("upload")}
+          onSuggestion={handleSuggestionAsk}
+          answer={composerAnswer}
+          answerContextLabel={latestCompletedMeeting?.filename}
+          isAnswering={isAnsweringComposer}
+          error={composerError}
+          canAsk={Boolean(latestCompletedMeeting)}
         />
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
